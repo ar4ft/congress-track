@@ -7,7 +7,19 @@ jobs:
       - uses: actions/checkout@v4
       - run: swift test
       - run: bash scripts/build-app.sh
+      - name: Smoke-test packaged app
+        run: |
+          dist/CongressTrack.app/Contents/MacOS/CongressTrack > /tmp/congresstrack-smoke.log 2>&1 &
+          APP_PID=$!
+          sleep 8
+          if ! kill -0 "$APP_PID" 2>/dev/null; then
+            cat /tmp/congresstrack-smoke.log
+            exit 1
+          fi
+          kill "$APP_PID"
       - uses: actions/upload-artifact@v4
         with:
           name: CongressTrack-macOS
-          path: dist/
+          path: |
+            dist/CongressTrack-macOS.zip
+            dist/CongressTrack.dmg

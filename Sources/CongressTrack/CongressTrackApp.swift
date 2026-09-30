@@ -3,10 +3,11 @@ import SwiftUI
 @main
 struct CongressTrackApp: App {
     @StateObject private var store = TradeStore()
+    @StateObject private var prices = PriceStore()
     var body: some Scene {
-        WindowGroup {
-            ContentView().environmentObject(store)
-                .frame(minWidth: 1080, minHeight: 680)
+        WindowGroup("CongressTrack", id: "main") {
+            ContentView().environmentObject(store).environmentObject(prices)
+                .frame(minWidth: 1200, minHeight: 720)
         }
         .defaultSize(width: 1380, height: 850)
         .commands {
@@ -15,6 +16,10 @@ struct CongressTrackApp: App {
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(store.refreshing)
             }
+        }
+        Settings { AppSettingsView().environmentObject(store) }
+        MenuBarExtra("CongressTrack", systemImage: "building.columns") {
+            MenuBarView().environmentObject(store)
         }
     }
 }

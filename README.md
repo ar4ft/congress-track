@@ -1,40 +1,77 @@
 # CongressTrack for Mac
 
-A native SwiftUI prototype for browsing congressional trade disclosures, inspired by the references CongressStock, Pelosi Tracker, and [LuxAlgo Market Trackers](https://github.com/LuxAlgo/market-trackers). Requires macOS 14+ and Xcode 15+. No account or API key required.
+A native SwiftUI app for browsing congressional stock disclosures, following politicians and tickers, and comparing a modeled disclosure-following strategy with the S&P 500. Uses [LuxAlgo's public datasets](https://github.com/LuxAlgo/market-trackers-data), with links to original government filings. Requires macOS 14+ and Xcode 15+.
 
-## Run on your Mac
+## Run and install
 
-Open `Package.swift` in Xcode, select the CongressTrack scheme and My Mac, then Run. Alternatively, from this directory:
+Open `Package.swift` in Xcode, select CongressTrack and My Mac, and Run, or:
 
 ```bash
 swift run CongressTrack
 ```
 
-To build a local `.app`:
+For the packaged app, icon, and installer:
 
 ```bash
 bash scripts/build-app.sh
 open dist/CongressTrack.app
 ```
 
-The script creates an ad hoc signed local build. Developer ID signing and notarization are still needed for public distribution. This workspace is Linux; the Mac build and UI have not been run here.
+The script produces an ad hoc signed `.app`, a zip, and a DMG. Download build artifacts from the repository's successful **Mac app checks** workflow runs. Ad hoc signing is for local development; it is not Developer ID signing or notarization. With a Developer ID certificate and a configured notarytool keychain profile, the same script supports public distribution:
 
-## Included
+```bash
+CONGRESSTRACK_SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)' \
+CONGRESSTRACK_NOTARY_PROFILE='your-keychain-profile' \
+bash scripts/build-app.sh
+```
 
-- Native sidebar, searchable and sortable disclosure table, chamber/party/activity filters.
-- Politician cards and persistent follow lists.
-- Disclosure details showing reported ranges, ownership, transaction date, filing date, and disclosure delay.
-- Original government filing links and parser review flags.
-- Bundled public snapshot, latest-batch refresh with ID-based replacement, local caching, and refresh error handling.
-- Separate timestamps for source ingestion and checking for updates. Cmd-R refreshes.
+No signing credentials are included. Notification permissions require launching the packaged `.app`; `swift run` still supports the in-app alert feed.
 
-## Data and scope
+## Features
 
-The bundled snapshot contains 175 records downloaded on September 30, 2026 from [LuxAlgo's public data repository](https://github.com/LuxAlgo/market-trackers-data). The accompanying manifest reports congress ingestion at `2026-09-07T15:11:27.497Z`. The dataset is partial; it is not all congressional trades. The two website references returned HTTP 403 during research, so their layouts were not inspected or copied.
+- Searchable and sortable native disclosure table; chamber, party, activity, ticker, and filing-date filters.
+- Politician cards, persistent politician/ticker watchlists, and named saved searches.
+- Disclosure details with amount ranges, owner, trade/filing dates, disclosure delay, parser review flags, and original filing links.
+- Full year-shard history synchronization, validated against the manifest's record count; authoritative snapshots reconcile corrections and removals. The latest delta updates between snapshots.
+- Offline caches, source health, ingestion timestamps, last full sync, and failure handling. History refreshes when the manifest changes, daily, or on demand.
+- Polling every 15 minutes while the app runs; in-app alerts for new watched filings and optional macOS notifications. The first successful sync establishes a baseline and suppresses historical notification floods. Monitoring stops when the app quits.
+- A menu bar for opening the app, seeing recent alerts, and refreshing. Cmd-R refreshes disclosures.
+- A leaderboard and interactive Swift Charts graph, with 30/90/180 calendar-day windows, minimum sample counts, optional excess-return ranking, purchase-level filing links, and excluded-record reasons.
 
-Launch and refresh download `congress/trades/latest.json` and `manifest.json` over HTTPS. The latest file is a delta: repeated refresh merges into the bundled and cached history, but does not recover every batch missed while the app was closed. A production version should ingest full year snapshots, reconcile corrections/deletions, and show source health. Prices and portfolio performance are not provided by this source. No returns, holdings, or exact transaction sizes are inferred from disclosures. Records with no ticker retain their original asset descriptions.
+## Leaderboard methodology
 
-Follow lists and cached records live locally (UserDefaults and `~/Library/Application Support/CongressTrack`). Following currently filters the watchlist; background monitoring and notification alerts are not implemented. No brokerage integration is included.
+This ranks **modeled returns**, not politicians' actual realized profits. Public disclosures omit exact quantities and full holdings, so a reliable actual-profit leaderboard cannot be reconstructed from these records alone.
+
+1. Consider disclosed **stock purchases**, including spouse/dependent ownership. Exclude sales, exchanges, options, bonds, unmapped tickers, and review-flagged records.
+2. Enter at the first shared stock/SPY close **strictly after the filing date**, within 7 calendar days. This avoids trading on information before it became public.
+3. Exit at the first shared close on or after the entry date plus the selected calendar-day window, within 7 days. Exclude incomplete windows and coverage gaps over 7 days.
+4. Compute stock and SPY returns from adjusted closes on **identical dates**. Every eligible purchase gets equal weight. Disclosed ranges never become estimated position sizes. No costs or taxes are modeled.
+5. Rank each politician's arithmetic mean event return. Excess return is that mean minus the matched SPY mean, in **percentage points**. Minimum sample counts can reduce small-sample rankings.
+6. Rebase each event's stock and benchmark price path to 100, align by **percentage of holding period**, and average the paths. The graph is a time-aligned event comparison, not a calendar-time portfolio equity curve. Its endpoint equals the leaderboard return.
+
+SPY is an S&P 500 ETF proxy, not the index itself. Adjusted-close changes account for the provider's split/dividend adjustments and are not identical to the official S&P 500 total-return index. Small samples, excluded assets, missing prices, and incomplete disclosure coverage can materially affect rankings.
+
+## Market prices
+
+LuxAlgo does **not** include market prices. The Leaderboard loads Yahoo Finance adjusted daily closes when first opened; the **Load market prices** button refreshes them. This is an unofficial, keyless endpoint, which may throttle, change, or fail. Failed symbols retain their cached series and are listed in the UI. Today's potentially incomplete quote is excluded. Market-price data is cached locally and is not redistributed in this repository.
+
+You can also import a strict CSV containing consistent, split/dividend-adjusted closes for stocks and **SPY**:
+
+```text
+date,ticker,adjusted_close
+```
+
+Each subsequent row contains a valid ISO date, ticker, and positive finite adjusted close. Missing SPY, duplicate ticker/date pairs, and malformed rows are rejected. Import replaces the archive rather than silently mixing sources. Imported-file adjustment accuracy is the user's responsibility; the app cannot verify it.
+
+## Source coverage and health
+
+The bundled snapshot has 175 records downloaded September 30, 2026. Its manifest reports congress ingestion at `2026-09-07T15:11:27.497Z`. That dataset is **partial** and does not represent all congressional trading. Full history sync means all records published in the source snapshots, not every government disclosure.
+
+Data health shows House/Senate sync and canary states, plus a local 72-hour staleness threshold independent of the manifest's flag. A new app check does not make old ingestion fresh. A snapshot row-count mismatch fails the sync and preserves previously loaded history. Snapshots replace history; incoming rows older than an existing record's retrieval timestamp do not overwrite corrections.
+
+Disclosures are delayed; amounts remain ranges. Following or watching an entity currently monitors new filings, not market-price movements. No brokerage or trade execution is included.
+
+Follow lists, searches, and alerts are in UserDefaults. Trade/manifest/price caches are in `~/Library/Application Support/CongressTrack`.
 
 ## Verification
 
@@ -43,6 +80,6 @@ swift test
 bash scripts/build-app.sh
 ```
 
-The macOS GitHub Actions workflow runs these checks when this folder is used as a repository root. Unit tests cover missing tickers, disclosure delay, searching, and merging refreshed records. Mac compilation and interface verification remain to be performed on macOS.
+The macOS CI workflow runs unit tests, builds the installer, verifies the signature, and smoke-tests the packaged app. Tests cover disclosure decoding, no-look-ahead entry, identical benchmark dates, equal weighting, curve endpoints, ordering, missing prices, incomplete periods, price gaps, CSV validation, archive planning, corrupted gzip, and watchlist alert matching. Manual interaction and notification delivery should still be checked on a Mac.
 
-Bundled data is CC0 per LuxAlgo's [data license](https://github.com/LuxAlgo/market-trackers/blob/main/data-licenses/DATA-LICENSE). LuxAlgo ingestion code has not been copied into this app.
+The references were [CongressStock](https://www.congressstock.com/trades), [Pelosi Tracker](https://pelositracker.app), and [LuxAlgo Market Trackers](https://github.com/LuxAlgo/market-trackers). The two websites returned HTTP 403 during research, so their layouts were not inspected or copied. Bundled disclosures are CC0 per LuxAlgo's [data license](https://github.com/LuxAlgo/market-trackers/blob/main/data-licenses/DATA-LICENSE). LuxAlgo ingestion code has not been copied into this app.

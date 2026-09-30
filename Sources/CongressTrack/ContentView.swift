@@ -1,13 +1,15 @@
 import SwiftUI
 
 private enum Section: String, CaseIterable, Identifiable {
-    case all = "All disclosures", watchlist = "Watchlist", members = "Politicians"
+    case all = "All disclosures", leaderboard = "Leaderboard", watchlist = "Watchlist", members = "Politicians", alerts = "Alerts"
     var id: String { rawValue }
     var icon: String {
         switch self {
         case .all: return "chart.bar.xaxis"
         case .watchlist: return "star"
         case .members: return "person.2"
+        case .leaderboard: return "trophy"
+        case .alerts: return "bell"
         }
     }
 }
@@ -20,6 +22,13 @@ struct ContentView: View {
     @State private var side = "all"
     @State private var party = "all"
     @State private var memberKey: String?
+    @State private var tickerFilter: String?
+    @State private var useDates = false
+    @State private var since = Day.adding(-365, to: Date())
+    @State private var until = Date()
+    @State private var showSaveSearch = false
+    @State private var searchName = ""
+    @State private var showHealth = false
     @State private var selectedID: Trade.ID?
     @State private var sortOrder = [KeyPathComparator(\Trade.filedAt, order: .reverse)]
 
@@ -30,7 +39,10 @@ struct ContentView: View {
             (side == "all" || $0.side == side) &&
             (party == "all" || $0.member.party == party) &&
             (memberKey == nil || $0.member.key == memberKey) &&
-            (section != .watchlist || store.followed.contains($0.member.key))
+            (tickerFilter == nil || $0.ticker?.uppercased() == tickerFilter) &&
+            (!useDates || ($0.filedAt >= Day.string(since) && $0.filedAt <= Day.string(until))) &&
+            (section != .watchlist || store.followed.contains($0.member.key) ||
+                $0.ticker.map { store.watchedTickers.contains($0.uppercased()) } == true)
         }.sorted(using: sortOrder)
     }
     private var selected: Trade? { rows.first { $0.id == selectedID } }
@@ -51,9 +63,32 @@ struct ContentView: View {
                         }
                     }
                     SwiftUI.Section("FOLLOWING") {
-                        if store.followed.isEmpty {
+                        if store.followed.isEmpty && store.watchedTickers.isEmpty {
                             Text("Follow a politician from a disclosure.")
                                 .font(.caption).foregroundStyle(.secondary)
+                        }
+                        ForEach(store.watchedTickers.sorted(), id: \.self) { ticker in
+                            Button {
+                                section = .all
+                                DispatchQueue.main.async { tickerFilter = ticker; search = "" }
+                            } label: { Label(ticker, systemImage: "chart.line.uptrend.xyaxis") }
+                            .buttonStyle(.plain)
+                            .contextMenu { Button("Unwatch \(ticker)") { store.toggleTicker(ticker) } }
+                        }
+                    }
+                    SwiftUI.Section("SAVED SEARCHES") {
+                        ForEach(store.searches) { saved in
+                            Button(saved.name) {
+                                section = .all
+                                DispatchQueue.main.async {
+                                    search = saved.query; chamber = saved.chamber; side = saved.side; party = saved.party
+                                    memberKey = saved.memberKey; tickerFilter = saved.ticker
+                                    useDates = saved.since != nil
+                                    since = saved.since.flatMap(Day.parse) ?? since
+                                    until = saved.until.flatMap(Day.parse) ?? until
+                                }
+                            }.buttonStyle(.plain)
+                                .contextMenu { Button("Delete search") { store.deleteSearch(saved.id) } }
                         }
                         ForEach(members.filter { store.followed.contains($0.key) }, id: \.key) { member in
                             Button {
@@ -74,7 +109,12 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 220, ideal: 235)
         } detail: {
             VStack(alignment: .leading, spacing: 0) {
-                header
+                if section == .leaderboard {
+                    HStack {
+                        Label("Performance leaderboard", systemImage: "trophy").font(.largeTitle.bold())
+                        Spacer()
+                    }.padding(24)
+                } else { header }
                 if let error = store.error {
                     HStack {
                         Label(error, systemImage: "exclamationmark.triangle")
@@ -82,7 +122,9 @@ struct ContentView: View {
                         Button("Dismiss") { store.error = nil }
                     }.font(.caption).padding(12).background(.orange.opacity(0.1))
                 }
-                if section == .members { memberGrid }
+                if section == .leaderboard { LeaderboardView() }
+                else if section == .alerts { AlertsView() }
+                else if section == .members { memberGrid }
                 else {
                     filters
                     HStack(spacing: 0) {
@@ -105,8 +147,19 @@ struct ContentView: View {
                 }.disabled(store.refreshing).help("Fetch the latest published disclosure batch (⌘R)")
             }
         }
-        .task { await store.refresh() }
-        .onChange(of: section) { _, _ in memberKey = nil; selectedID = nil }
+        .task { store.startMonitoring() }
+        .onChange(of: section) { _, _ in memberKey = nil; tickerFilter = nil; selectedID = nil }
+        .alert("Save search", isPresented: $showSaveSearch) {
+            TextField("Search name", text: $searchName)
+            Button("Save") {
+                store.saveSearch(SavedSearch(name: searchName.trimmingCharacters(in: .whitespacesAndNewlines),
+                                             query: search, chamber: chamber, side: side, party: party, memberKey: memberKey,
+                                             since: useDates ? Day.string(since) : nil, until: useDates ? Day.string(until) : nil,
+                                             ticker: tickerFilter))
+            }.disabled(searchName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            Button("Cancel", role: .cancel) {}
+        }
+        .sheet(isPresented: $showHealth) { DataHealthView().environmentObject(store) }
     }
 
     private var header: some View {
@@ -140,6 +193,7 @@ struct ContentView: View {
     }
 
     private var filters: some View {
+        VStack(alignment: .leading, spacing: 12) {
         HStack(spacing: 16) {
             Picker("Chamber", selection: $chamber) {
                 Text("Both chambers").tag("all")
@@ -159,11 +213,22 @@ struct ContentView: View {
                 Text("Independent").tag("Independent")
             }.frame(width: 200)
             Spacer()
-            if memberKey != nil || chamber != "all" || side != "all" || party != "all" || !search.isEmpty {
+            if memberKey != nil || tickerFilter != nil || useDates || chamber != "all" || side != "all" || party != "all" || !search.isEmpty {
                 Button("Clear filters") {
-                    memberKey = nil; chamber = "all"; side = "all"; party = "all"; search = ""
+                    memberKey = nil; tickerFilter = nil; useDates = false; chamber = "all"; side = "all"; party = "all"; search = ""
                 }.font(.caption)
             }
+        }
+        HStack(spacing: 12) {
+            Toggle("Filing dates", isOn: $useDates).toggleStyle(.checkbox)
+            if useDates {
+                DatePicker("From", selection: $since, in: ...until, displayedComponents: .date)
+                DatePicker("To", selection: $until, in: since..., displayedComponents: .date)
+            }
+            if let tickerFilter { Text("Ticker: \(tickerFilter)").font(.caption.bold()) }
+            Spacer()
+            Button("Save search") { searchName = search.isEmpty ? "Saved filters" : search; showSaveSearch = true }
+        }
         }.padding(.horizontal, 24).padding(.bottom, 18)
     }
 
@@ -197,9 +262,9 @@ struct ContentView: View {
         .overlay {
             if rows.isEmpty {
                 ContentUnavailableView(
-                    section == .watchlist && store.followed.isEmpty ? "Your watchlist is empty" : "No matching disclosures",
+                    section == .watchlist && store.followed.isEmpty && store.watchedTickers.isEmpty ? "Your watchlist is empty" : "No matching disclosures",
                     systemImage: section == .watchlist ? "star" : "magnifyingglass",
-                    description: Text(section == .watchlist && store.followed.isEmpty ?
+                    description: Text(section == .watchlist && store.followed.isEmpty && store.watchedTickers.isEmpty ?
                         "Select a disclosure and follow its politician to get started." : "Try another search or clear your filters."))
             }
         }
@@ -237,11 +302,13 @@ struct ContentView: View {
     private var footer: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
-                Text("\(store.trades.count) loaded records · latest batch refresh")
+                Text("\(store.trades.count) published records · \(store.dataHealth)")
                 Spacer()
+                Button("Data health") { showHealth = true }
                 if let checked = store.checkedAt { Text("Checked \(checked.formatted(date: .omitted, time: .shortened))") }
             }
             Text("Source ingestion: \(store.manifest?.datasets["congress-trades"]?.lastIngestedAt ?? "Unknown")")
+            if !store.syncProgress.isEmpty { Text(store.syncProgress) }
             Text("Disclosures are delayed and amounts are ranges. Loaded data is not a complete market history.")
         }.font(.caption).foregroundStyle(.secondary).padding(14)
             .background(.bar)
@@ -268,6 +335,13 @@ private struct TradeDetail: View {
                     Label(store.followed.contains(trade.member.key) ? "Following" : "Follow politician",
                           systemImage: store.followed.contains(trade.member.key) ? "star.fill" : "star")
                 }.buttonStyle(.bordered)
+                if let ticker = trade.ticker {
+                    Button {
+                        store.toggleTicker(ticker)
+                    } label: {
+                        Label(store.watchedTickers.contains(ticker.uppercased()) ? "Watching \(ticker)" : "Watch \(ticker)", systemImage: "bell")
+                    }.buttonStyle(.bordered)
+                }
                 Divider()
                 field("Transaction", trade.side.capitalized)
                 field("Disclosed amount", trade.amountRange.text)

@@ -2,10 +2,19 @@ import SwiftUI
 
 struct AppSettingsView: View {
     @EnvironmentObject private var store: TradeStore
+    @EnvironmentObject private var updates: UpdateController
     @State private var ticker = ""
 
     var body: some View {
         Form {
+            SwiftUI.Section("App updates") {
+                Text(updates.status).font(.caption).foregroundStyle(.secondary)
+                Toggle("Check for updates automatically", isOn: Binding(get: { updates.automaticallyChecks }, set: updates.setAutomaticChecks))
+                    .disabled(!updates.configured)
+                Toggle("Download updates and install when quitting", isOn: Binding(get: { updates.automaticallyInstalls }, set: updates.setAutomaticInstalls))
+                    .disabled(!updates.configured || !updates.automaticallyChecks)
+                Button("Check for Updates…") { updates.checkForUpdates() }.disabled(!updates.canCheckForUpdates)
+            }
             SwiftUI.Section("Watchlist alerts") {
                 Toggle("Enable macOS notifications", isOn: Binding(get: { store.notificationsEnabled }, set: { value in
                     Task { await store.setNotifications(value) }
@@ -33,7 +42,7 @@ struct AppSettingsView: View {
                 Text("Snapshots reconcile corrections and removed rows. Source coverage remains limited to LuxAlgo's published records.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-        }.formStyle(.grouped).padding().frame(width: 540, height: 480)
+        }.formStyle(.grouped).padding().frame(width: 540, height: 620)
     }
 }
 
@@ -96,6 +105,7 @@ struct DataHealthView: View {
 
 struct MenuBarView: View {
     @EnvironmentObject private var store: TradeStore
+    @EnvironmentObject private var updates: UpdateController
     @Environment(\.openWindow) private var openWindow
     var body: some View {
         Text("CongressTrack · \(store.trades.count) disclosures").font(.headline)
@@ -110,6 +120,7 @@ struct MenuBarView: View {
         }
         Button("Refresh disclosures") { Task { await store.refresh() } }.disabled(store.refreshing)
         SettingsLink()
+        Button("Check for Updates…") { updates.checkForUpdates() }.disabled(!updates.canCheckForUpdates)
         Divider()
         Button("Quit") { NSApp.terminate(nil) }.keyboardShortcut("q")
     }

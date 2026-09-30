@@ -1,0 +1,72 @@
+name: Signed Mac release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag matching Release.json (for example v0.3.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: congresstrack-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-14
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      CONGRESSTRACK_RELEASE: '1'
+      CONGRESSTRACK_UNIVERSAL: '1'
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      APPLE_API_KEY_ID: ${{ vars.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER_ID: ${{ vars.APPLE_API_ISSUER_ID }}
+      SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_PUBLIC_KEY }}
+      MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+      SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      - name: Verify release prerequisites and import credentials
+        run: python3 scripts/prepare-release.py
+      - name: Verify Sparkle signing keypair
+        run: swift scripts/validate-update-key.swift
+      - name: Run tests
+        run: |
+          python3 -m unittest discover -s tests-release -v
+          swift test
+      - name: Build, sign, notarize, and staple application and installer
+        run: bash scripts/build-app.sh
+      - name: Generate and verify signed update feed
+        run: bash scripts/generate-appcast.sh
+      - name: Smoke-test signed app
+        run: |
+          dist/CongressTrack.app/Contents/MacOS/CongressTrack > /tmp/congresstrack-release-smoke.log 2>&1 &
+          APP_PID=$!
+          sleep 8
+          if ! kill -0 "$APP_PID" 2>/dev/null; then
+            cat /tmp/congresstrack-release-smoke.log
+            exit 1
+          fi
+          kill "$APP_PID"
+      - name: Remove temporary signing credentials
+        if: always()
+        run: python3 scripts/cleanup-release.py
+      - name: Publish verified GitHub Release
+        run: python3 scripts/publish-release.py
+      - name: Preserve debug symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: CongressTrack-symbols-${{ env.RELEASE_TAG }}
+          path: dist/CongressTrack-symbols.zip

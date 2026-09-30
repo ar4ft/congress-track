@@ -5,8 +5,13 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests-release -v
       - run: swift test
       - run: bash scripts/build-app.sh
+        env:
+          CONGRESSTRACK_UNIVERSAL: '1'
+      - name: Verify signed updates and reject tampered packages
+        run: bash scripts/test-updates.sh
       - name: Smoke-test packaged app
         run: |
           dist/CongressTrack.app/Contents/MacOS/CongressTrack > /tmp/congresstrack-smoke.log 2>&1 &
@@ -23,3 +28,4 @@ jobs:
           path: |
             dist/CongressTrack-macOS.zip
             dist/CongressTrack.dmg
+            dist/CongressTrack-symbols.zip

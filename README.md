@@ -25,6 +25,8 @@ CONGRESSTRACK_NOTARY_PROFILE='your-keychain-profile' \
 bash scripts/build-app.sh
 ```
 
+For signed production releases and automatic updates, follow [RELEASE_SETUP.md](RELEASE_SETUP.md). Version and build numbers come from `Release.json`. Production builds embed Sparkle 2.10.0 and check a signed GitHub release feed; development builds leave updates disabled.
+
 No signing credentials are included. Notification permissions require launching the packaged `.app`; `swift run` still supports the in-app alert feed.
 
 ## Features
@@ -80,6 +82,6 @@ swift test
 bash scripts/build-app.sh
 ```
 
-The macOS CI workflow runs unit tests, builds the installer, verifies the signature, and smoke-tests the packaged app. Tests cover disclosure decoding, no-look-ahead entry, identical benchmark dates, equal weighting, curve endpoints, ordering, missing prices, incomplete periods, price gaps, CSV validation, archive planning, corrupted gzip, and watchlist alert matching. Manual interaction and notification delivery should still be checked on a Mac.
+The macOS CI workflow runs unit tests, builds a universal installer for Intel and Apple silicon, verifies the signature, smoke-tests the packaged app, and verifies Sparkle signatures while rejecting modified archives and feeds. The separate tag-triggered release workflow requires Developer ID signing and Apple notarization before publishing. Signing/notarization require the credential setup described above. Tests cover disclosure decoding, no-look-ahead entry, identical benchmark dates, equal weighting, curve endpoints, ordering, missing prices, incomplete periods, price gaps, CSV validation, archive planning, corrupted gzip, and watchlist alert matching. Manual interaction and notification delivery should still be checked on a Mac.
 
 The references were [CongressStock](https://www.congressstock.com/trades), [Pelosi Tracker](https://pelositracker.app), and [LuxAlgo Market Trackers](https://github.com/LuxAlgo/market-trackers). The two websites returned HTTP 403 during research, so their layouts were not inspected or copied. Bundled disclosures are CC0 per LuxAlgo's [data license](https://github.com/LuxAlgo/market-trackers/blob/main/data-licenses/DATA-LICENSE). LuxAlgo ingestion code has not been copied into this app.

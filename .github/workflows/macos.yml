@@ -1,0 +1,13 @@
+name: Mac app checks
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+      - run: bash scripts/build-app.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CongressTrack-macOS
+          path: dist/

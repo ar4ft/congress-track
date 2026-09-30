@@ -20,7 +20,11 @@ if __name__ == "__main__":
     app = Path(sys.argv[1]).resolve()
     identity = os.environ.get("CONGRESSTRACK_SIGNING_IDENTITY", "-")
     production = os.environ.get("CONGRESSTRACK_RELEASE") == "1"
-    if production and not identity.startswith("Developer ID Application:"):
+    if not production:
+        sys.exit("Code signing is permitted only for an explicitly enabled signed release")
+    if os.environ.get("GITHUB_ACTIONS") == "true" and os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch":
+        sys.exit("Code signing is allowed only for a manually started action")
+    if not identity.startswith("Developer ID Application:"):
         sys.exit("Production releases require a Developer ID Application identity")
     code = [path for path in app.rglob("*") if is_code(path)]
     code.sort(key=lambda path: len(path.parts), reverse=True)

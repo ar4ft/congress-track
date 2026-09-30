@@ -1,25 +1,51 @@
-name: Signed Mac release
+name: Mac build or signed release
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag matching Release.json (for example v0.3.0)
-        required: true
+        description: Branch/tag for development; existing matching version tag for signed release (e.g. v0.3.0)
+        required: false
         type: string
+      signed_release:
+        description: Sign, notarize, and publish a production release (requires Apple credentials)
+        required: true
+        default: false
+        type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: congresstrack-production-release
   cancel-in-progress: false
 
 jobs:
+  development:
+    if: ${{ !inputs.signed_release }}
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - run: python3 -m unittest discover -s tests-release -v
+      - run: swift test
+      - name: Build development app without release signing
+        run: bash scripts/build-app.sh
+        env:
+          CONGRESSTRACK_RELEASE: '0'
+          CONGRESSTRACK_UNIVERSAL: '1'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CongressTrack-development
+          path: |
+            dist/CongressTrack-macOS.zip
+            dist/CongressTrack.dmg
   release:
+    if: ${{ inputs.signed_release }}
     runs-on: macos-14
     timeout-minutes: 60
+    permissions:
+      contents: write
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}

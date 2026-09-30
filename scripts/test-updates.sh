@@ -18,7 +18,6 @@ info.update({'SUPublicEDKey': os.environ['SPARKLE_PUBLIC_KEY'],
              'SURequireSignedFeed': True, 'SUVerifyUpdateBeforeExtraction': True})
 path.write_bytes(plistlib.dumps(info))
 PY
-python3 scripts/sign-bundle.py "$WORK_DIR/CongressTrack.app"
 mkdir -p "$WORK_DIR/updates"
 ditto -c -k --keepParent "$WORK_DIR/CongressTrack.app" "$WORK_DIR/updates/CongressTrack-macOS.zip"
 TOOLS="$(python3 - <<'PY'
@@ -30,7 +29,8 @@ PY
 )"
 TAG="$(python3 -c 'import json; print("v" + json.load(open("Release.json"))["version"])')"
 PREFIX="https://github.com/ar4ft/congress-track/releases/download/$TAG/"
-"$TOOLS/generate_appcast" --ed-key-file "$CONGRESSTRACK_SPARKLE_KEY_FILE" --maximum-deltas 0 --download-url-prefix "$PREFIX" "$WORK_DIR/updates"
+# This unsigned fixture validates Ed25519 archive/feed signatures only; no binaries are code signed.
+"$TOOLS/generate_appcast" --disable-nested-code-check --ed-key-file "$CONGRESSTRACK_SPARKLE_KEY_FILE" --maximum-deltas 0 --download-url-prefix "$PREFIX" "$WORK_DIR/updates"
 SIGNATURE="$(python3 scripts/validate-appcast.py "$WORK_DIR/updates/appcast.xml" "$WORK_DIR/updates/CongressTrack-macOS.zip" "$PREFIX")"
 "$TOOLS/sign_update" --ed-key-file "$CONGRESSTRACK_SPARKLE_KEY_FILE" --verify "$WORK_DIR/updates/appcast.xml"
 "$TOOLS/sign_update" --ed-key-file "$CONGRESSTRACK_SPARKLE_KEY_FILE" --verify "$WORK_DIR/updates/CongressTrack-macOS.zip" "$SIGNATURE"

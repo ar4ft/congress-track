@@ -1,6 +1,6 @@
 # Signed, notarized releases and automatic updates
 
-The app and release workflow are implemented. **A production release cannot be issued until you configure the Apple and Sparkle credentials below.** Current development artifacts remain ad hoc signed, without automatic updates enabled.
+The app and release workflow are implemented. **A production release cannot be issued until you configure the Apple and Sparkle credentials below.** Development jobs never invoke certificate signing or notarization, and have automatic updates disabled. Signing is permitted only in an explicitly selected, manually started release action.
 
 The pipeline uses a Developer ID Application certificate, an App Store Connect **team** API key authorized for notarization, and a Sparkle Ed25519 signing key. It builds a universal app for Intel and Apple silicon; signs all nested Sparkle code with your identity; notarizes and staples the app and DMG; signs and verifies the update archive and feed; and uploads everything to a draft GitHub Release before publishing it. It rejects missing credentials, mismatched keys, reused versions, build-number downgrades, and unaccepted notarization results.
 
@@ -74,14 +74,18 @@ The current agent's GitHub connection cannot inspect/manage Actions secrets. Con
 
 ## 5. Publish the first production release
 
-`Release.json` is the single source of version/build metadata. The first updater-enabled release is **0.3.0, build 3**. Both fields must increase for subsequent releases. After the main CI run passes and the credentials are configured:
+`Release.json` is the single source of version/build metadata. The first updater-enabled release is **0.3.0, build 3**. Both fields must increase for subsequent releases. After the main CI run passes and the credentials are configured, create a matching tag:
 
 ```bash
 git tag v0.3.0
 git push origin v0.3.0
 ```
 
-The **Signed Mac release** workflow runs automatically for `v*` tags. You can retry an existing tag via **Actions → Signed Mac release → Run workflow**, entering the same tag. It can resume an incomplete draft but will not overwrite an already-published release. No production tag was created during implementation because signing setup is still required.
+Creating or pushing the tag **does not sign or publish anything**. Open **Actions → Mac build or signed release → Run workflow**, enter `v0.3.0` in the tag field, and check **Sign, notarize, and publish a production release**. Only this manual selection enables signing/notarization and publishing.
+
+For a development build, leave that checkbox off. The default is off. Leave the tag field blank to build the selected branch, or enter another existing branch/tag. This mode builds downloadable development artifacts without release signing, notarization, or publication; no Apple credentials are needed. Ordinary pushes and pull requests also run development CI without signing.
+
+Retry a failed production release by manually running the same tag with the checkbox on. The job can resume an incomplete draft but will not overwrite a published release. No production tag or release was created during implementation because signing setup is still required.
 
 The release contains `CongressTrack.dmg`, `CongressTrack-macOS.zip`, `appcast.xml`, `release-metadata.json`, and `SHA256SUMS`. Debug symbols are stored in a separate Actions artifact. The DMG includes an Applications shortcut; users drag the app to Applications.
 
@@ -99,4 +103,8 @@ Existing 0.2 development builds have no updater and need a **one-time manual ins
 
 For a complete production test, install notarized 0.3.0 in Applications, publish a new version/build such as 0.3.1/build 4, and use Check for Updates from the old copy. Verify the offered version, installation/relaunch, and retained watchlists. The first release alone cannot test a real version-to-version upgrade.
 
-CI tests the universal packaged app and actual Sparkle-generated signed archives/feeds using an ephemeral key, then verifies altered archives/feeds are rejected. Those tests do **not** substitute for Apple notarization or this first installed-app upgrade test.
+CI tests the universal development app and Sparkle-generated archive/feed signatures using an ephemeral test key, then verifies altered archives/feeds are rejected. Those temporary fixtures are not distributed and no binaries are code signed in that test. Those tests do **not** substitute for Apple notarization or this first installed-app upgrade test.
+
+## Development-signature details
+
+Development workflows do not run `codesign`, use Apple credentials, or submit anything to Apple. The Swift/macOS linker may include a platform-required ad hoc signature in an executable, particularly on Apple silicon; that does not use your Developer ID identity or certify a release. Sparkle also arrives with its upstream vendor signature, which is preserved in development builds. Only the manual production job re-signs the app, framework, helpers, and installer using your certificate.

@@ -34,6 +34,8 @@ def validate_progression(current, previous):
 
 
 def validate_credentials(environment=os.environ):
+    if environment.get("GITHUB_ACTIONS") == "true" and environment.get("GITHUB_EVENT_NAME") != "workflow_dispatch":
+        raise ValueError("Signing is allowed only when the release action is started manually")
     missing = [name for name in SECRET_NAMES + VARIABLE_NAMES if not environment.get(name, "").strip()]
     if missing:
         raise ValueError("Configure required GitHub Actions secrets/variables: " + ", ".join(missing))

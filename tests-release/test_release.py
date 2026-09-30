@@ -40,6 +40,13 @@ class ReleaseTests(unittest.TestCase):
         for invalid in ["main", "v0.1.0", "v1.0.0-beta.1"]:
             with self.assertRaises(ValueError): config.validate_tag(value, invalid)
 
+    def test_automatic_actions_cannot_sign_even_with_credentials(self):
+        for event in ["push", "pull_request", "schedule"]:
+            environment = self.environment() | {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": event}
+            with self.assertRaisesRegex(ValueError, "manually"):
+                config.validate_credentials(environment)
+        config.validate_credentials(self.environment() | {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "workflow_dispatch"})
+
     def test_release_cannot_downgrade_build_or_marketing_version(self):
         with self.assertRaises(ValueError): config.validate_progression({"build": 3, "version": "0.3.0"}, {"build": 4, "version": "0.2.0"})
         with self.assertRaises(ValueError): config.validate_progression({"build": 4, "version": "0.2.0"}, {"build": 3, "version": "0.3.0"})

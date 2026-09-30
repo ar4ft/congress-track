@@ -43,6 +43,7 @@ ditto "$SPARKLE_FRAMEWORK" "$APP/Contents/Frameworks/Sparkle.framework"
 SPARKLE_ROOT="$(dirname "$(dirname "$SPARKLE_FRAMEWORK")")"
 # xcframework -> package root.
 cp "$(dirname "$SPARKLE_ROOT")/LICENSE" "$APP/Contents/Resources/Sparkle-LICENSE"
+if [[ "${CONGRESSTRACK_RELEASE:-0}" == 1 ]]; then
 python3 - "$APP/Contents/MacOS/CongressTrack" <<'PY'
 import subprocess, sys, re
 binary = sys.argv[1]
@@ -52,6 +53,7 @@ for path in set(paths):
     if path.startswith('/'):
         subprocess.run(['install_name_tool', '-delete_rpath', path, binary], check=True)
 PY
+fi
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 ICONSET="$WORK_DIR/CongressTrack.iconset"
@@ -63,14 +65,18 @@ for SIZE in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 python3 scripts/release_config.py --plist "$APP/Contents/Info.plist"
-python3 scripts/sign-bundle.py "$APP"
+if [[ "${CONGRESSTRACK_RELEASE:-0}" == 1 ]]; then
+    python3 scripts/sign-bundle.py "$APP"
+else
+    echo "Development build: certificate signing and notarization are disabled."
+fi
 dsymutil "$APP/Contents/MacOS/CongressTrack" -o "$PWD/dist/CongressTrack.app.dSYM"
 ditto -c -k --keepParent "$PWD/dist/CongressTrack.app.dSYM" "$PWD/dist/CongressTrack-symbols.zip"
 NOTARY_OPTIONS=()
 if [[ -n "${CONGRESSTRACK_NOTARY_KEYCHAIN:-}" ]]; then
     NOTARY_OPTIONS=(--keychain "$CONGRESSTRACK_NOTARY_KEYCHAIN")
 fi
-if [[ -n "${CONGRESSTRACK_NOTARY_PROFILE:-}" ]]; then
+if [[ "${CONGRESSTRACK_RELEASE:-0}" == 1 ]]; then
     ditto -c -k --keepParent "$APP" "$WORK_DIR/notarization.zip"
     xcrun notarytool submit "$WORK_DIR/notarization.zip" --keychain-profile "$CONGRESSTRACK_NOTARY_PROFILE" "${NOTARY_OPTIONS[@]}" --wait --output-format json > "$PWD/dist/notarization-app.json"
     python3 -c 'import json; assert json.load(open("dist/notarization-app.json"))["status"] == "Accepted", "Application notarization was not accepted"'
@@ -84,11 +90,11 @@ mkdir -p "$WORK_DIR/installer"
 ditto "$APP" "$WORK_DIR/installer/CongressTrack.app"
 ln -s /Applications "$WORK_DIR/installer/Applications"
 hdiutil create -volname CongressTrack -srcfolder "$WORK_DIR/installer" -ov -format UDZO "$PWD/dist/CongressTrack.dmg"
-if [[ -n "${CONGRESSTRACK_SIGNING_IDENTITY:-}" && "$CONGRESSTRACK_SIGNING_IDENTITY" != - ]]; then
+if [[ "${CONGRESSTRACK_RELEASE:-0}" == 1 ]]; then
     codesign --force --timestamp --sign "$CONGRESSTRACK_SIGNING_IDENTITY" "$PWD/dist/CongressTrack.dmg"
     codesign --verify --strict "$PWD/dist/CongressTrack.dmg"
 fi
-if [[ -n "${CONGRESSTRACK_NOTARY_PROFILE:-}" ]]; then
+if [[ "${CONGRESSTRACK_RELEASE:-0}" == 1 ]]; then
     xcrun notarytool submit "$PWD/dist/CongressTrack.dmg" --keychain-profile "$CONGRESSTRACK_NOTARY_PROFILE" "${NOTARY_OPTIONS[@]}" --wait --output-format json > "$PWD/dist/notarization-dmg.json"
     python3 -c 'import json; assert json.load(open("dist/notarization-dmg.json"))["status"] == "Accepted", "DMG notarization was not accepted"'
     xcrun stapler staple "$PWD/dist/CongressTrack.dmg"

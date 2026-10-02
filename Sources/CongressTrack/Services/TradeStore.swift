@@ -1,22 +1,29 @@
 import Foundation
-import SwiftUI
+import Observation
 import UserNotifications
 
 @MainActor
-final class TradeStore: ObservableObject {
-    @Published private(set) var trades: [Trade] = []
-    @Published private(set) var refreshing = false
-    @Published private(set) var manifest: DataManifest?
-    @Published private(set) var checkedAt: Date?
-    @Published private(set) var lastHistorySync: Date?
-    @Published private(set) var syncProgress = ""
-    @Published var error: String?
-    @Published private(set) var followed: Set<String>
-    @Published private(set) var watchedTickers: Set<String>
-    @Published private(set) var alerts: [DisclosureAlert] = []
-    @Published private(set) var searches: [SavedSearch] = []
-    @Published private(set) var notificationsEnabled: Bool
-    @Published private(set) var notificationStatus = "System alerts are off"
+@Observable
+final class TradeStore {
+    private(set) var trades: [Trade] = []
+    private(set) var revision = 0
+    private(set) var members: [Trade.Member] = []
+    private(set) var memberCounts: [String: Int] = [:]
+    private var ingestedAt: Date?
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+    private var notificationRequest = UUID()
+    private(set) var refreshing = false
+    private(set) var manifest: DataManifest?
+    private(set) var checkedAt: Date?
+    private(set) var lastHistorySync: Date?
+    private(set) var syncProgress = ""
+    var error: String?
+    private(set) var followed: Set<String>
+    private(set) var watchedTickers: Set<String>
+    private(set) var alerts: [DisclosureAlert] = []
+    private(set) var searches: [SavedSearch] = []
+    private(set) var notificationsEnabled: Bool
+    private(set) var notificationStatus = "System alerts are off"
 
     private let defaults: UserDefaults
     private let base = "https://raw.githubusercontent.com/LuxAlgo/market-trackers-data/main/"
@@ -32,25 +39,48 @@ final class TradeStore: ObservableObject {
         checkedAt = defaults.object(forKey: "checkedAt") as? Date
         if let data = defaults.data(forKey: "searches"), let saved = try? JSONDecoder().decode([SavedSearch].self, from: data) { searches = saved }
         if let data = defaults.data(forKey: "alerts"), let saved = try? JSONDecoder().decode([DisclosureAlert].self, from: data) { alerts = saved }
-        cacheDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("CongressTrack", isDirectory: true)
-        do {
-            let seed = try Data(contentsOf: AppResources.url("trades", extension: "json"))
-            trades = TradeData.merge([], try TradeData.decode(seed))
-            if let cache = try? Data(contentsOf: cacheDirectory.appendingPathComponent("trades.json")),
-               let rows = try? TradeData.decode(cache) { trades = TradeData.merge([], rows) }
-            let manifestURL = cacheDirectory.appendingPathComponent("manifest.json")
-            let data: Data
-            if let cached = try? Data(contentsOf: manifestURL) { data = cached }
-            else { data = try Data(contentsOf: AppResources.url("manifest", extension: "json")) }
-            manifest = try JSONDecoder().decode(DataManifest.self, from: data)
-        } catch { self.error = "Could not load saved disclosures: \(error.localizedDescription)" }
+        cacheDirectory = URL.applicationSupportDirectory.appending(path: "CongressTrack", directoryHint: .isDirectory)
         if notificationsEnabled { notificationStatus = "System alerts enabled; authorization is checked on delivery" }
+    }
+
+    func loadIfNeeded() async {
+        if let loadTask { await loadTask.value; return }
+        let task = Task { await loadSavedData() }
+        loadTask = task
+        await task.value
+    }
+
+    private func loadSavedData() async {
+        do {
+            let snapshotURL = cacheDirectory.appending(path: "snapshot.json")
+            if let cached = try? await LocalStorage.shared.read(TradeSnapshot.self, from: snapshotURL) {
+                publish(cached.trades, manifest: cached.manifest)
+                return
+            }
+            // Preserve caches created before the atomic snapshot format was introduced.
+            let seed = AppResources.url("trades", extension: "json")
+            let seedManifest = AppResources.url("manifest", extension: "json")
+            let saved = try? await LocalStorage.shared.read([Trade].self, from: cacheDirectory.appending(path: "trades.json"))
+            let rows: [Trade]
+            if let saved { rows = saved } else { rows = try await LocalStorage.shared.read([Trade].self, from: seed) }
+            let metadata = try? await LocalStorage.shared.read(DataManifest.self, from: cacheDirectory.appending(path: "manifest.json"))
+            let manifest: DataManifest
+            if let metadata { manifest = metadata } else { manifest = try await LocalStorage.shared.read(DataManifest.self, from: seedManifest) }
+            publish(TradeData.merge([], rows), manifest: manifest)
+        } catch { self.error = "Could not load saved disclosures: \(error.localizedDescription)" }
+    }
+
+    private func publish(_ rows: [Trade], manifest: DataManifest) {
+        trades = rows; self.manifest = manifest; revision += 1
+        let groups = Dictionary(grouping: rows, by: { $0.member.key })
+        members = groups.values.compactMap { $0.first?.member }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        memberCounts = groups.mapValues(\.count)
+        ingestedAt = manifest.datasets["congress-trades"]?.lastIngestedAt.flatMap(parseTimestamp)
     }
 
     var dataHealth: String {
         guard let dataset = manifest?.datasets["congress-trades"],
-              let stamp = dataset.lastIngestedAt, let date = parseTimestamp(stamp) else { return "Unknown source freshness" }
+              let date = ingestedAt else { return "Unknown source freshness" }
         if dataset.stale == true || Date().timeIntervalSince(date) > 72 * 3600 { return "Stale source · no ingestion within 72 hours" }
         return "Source ingestion within 72 hours"
     }
@@ -64,6 +94,7 @@ final class TradeStore: ObservableObject {
     func startMonitoring() {
         guard pollingTask == nil else { return }
         pollingTask = Task { [weak self] in
+            await self?.loadIfNeeded()
             await self?.refresh()
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(900))
@@ -99,6 +130,7 @@ final class TradeStore: ObservableObject {
     }
 
     func setNotifications(_ enabled: Bool) async {
+        let request = UUID(); notificationRequest = request
         if !enabled {
             notificationsEnabled = false; notificationStatus = "System alerts are off"
             defaults.set(false, forKey: "notificationsEnabled"); return
@@ -108,13 +140,15 @@ final class TradeStore: ObservableObject {
         }
         do {
             let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+            guard request == notificationRequest else { return }
             notificationsEnabled = granted
             notificationStatus = granted ? "System alerts enabled" : "Notifications denied; enable them in System Settings"
             defaults.set(granted, forKey: "notificationsEnabled")
-        } catch { notificationStatus = error.localizedDescription }
+        } catch { if request == notificationRequest { notificationStatus = error.localizedDescription } }
     }
 
     func refresh(forceHistory: Bool = false) async {
+        await loadIfNeeded()
         guard !refreshing else { return }
         refreshing = true; error = nil
         defer { refreshing = false; syncProgress = "" }
@@ -144,16 +178,18 @@ final class TradeStore: ObservableObject {
                 }
             }
             let updated = TradeData.merge(history, try TradeData.decode(rows))
-            try FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
-            try JSONEncoder().encode(updated).write(to: cacheDirectory.appendingPathComponent("trades.json"), options: .atomic)
-            try metadata.write(to: cacheDirectory.appendingPathComponent("manifest.json"), options: .atomic)
+            try Task.checkCancellation()
+            try await LocalStorage.shared.write(TradeSnapshot(trades: updated, manifest: decodedManifest),
+                                                to: cacheDirectory.appending(path: "snapshot.json"))
             let matches = defaults.bool(forKey: "alertBaselineEstablished") ?
                 AlertPolicy.newMatches(old: trades, new: updated, members: followed, tickers: watchedTickers) : []
-            trades = updated; manifest = decodedManifest; checkedAt = Date()
+            publish(updated, manifest: decodedManifest); checkedAt = Date()
             defaults.set(checkedAt, forKey: "checkedAt")
             defaults.set(true, forKey: "alertBaselineEstablished")
             if needsHistory { lastHistorySync = Date(); defaults.set(lastHistorySync, forKey: "lastHistorySync") }
             await recordAlerts(matches)
+        } catch is CancellationError {
+            return
         } catch { self.error = "Sync failed. Saved disclosures remain available. \(error.localizedDescription)" }
     }
 
@@ -178,7 +214,8 @@ final class TradeStore: ObservableObject {
     }
 
     private func download(_ path: String) async throws -> Data {
-        var request = URLRequest(url: URL(string: base + path)!)
+        guard let url = URL(string: base + path) else { throw URLError(.badURL) }
+        var request = URLRequest(url: url)
         request.timeoutInterval = 30; request.cachePolicy = .reloadIgnoringLocalCacheData
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }

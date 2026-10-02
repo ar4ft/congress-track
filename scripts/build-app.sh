@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [[ "$(uname -s)" != Darwin ]]; then
-    echo "Build this native Mac app on macOS 14 or later with Xcode 15 or later."
+    echo "Build this native Mac app on macOS 14 or later with Xcode 26.2 or later (Swift 6.2+)."
     exit 1
 fi
 python3 scripts/release_config.py

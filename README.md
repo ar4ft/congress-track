@@ -1,6 +1,6 @@
 # CongressTrack for Mac
 
-A native SwiftUI app for browsing congressional stock disclosures, following politicians and tickers, and comparing a modeled disclosure-following strategy with the S&P 500. Uses [LuxAlgo's public datasets](https://github.com/LuxAlgo/market-trackers-data), with links to original government filings. Requires macOS 14+ and Xcode 15+.
+A native SwiftUI app for browsing congressional stock disclosures, following politicians and tickers, and comparing a modeled disclosure-following strategy with the S&P 500. Uses [LuxAlgo's public datasets](https://github.com/LuxAlgo/market-trackers-data), with links to original government filings. Requires macOS 14+ and Xcode 26.2+ (Swift 6.2+).
 
 ## Run and install
 
@@ -25,6 +25,7 @@ No signing credentials are included. Notification permissions require launching 
 
 ## Features
 
+- Adaptive sidebar, readable summary cards, and a resizable disclosure inspector; light/dark system appearance.
 - Searchable and sortable native disclosure table; chamber, party, activity, ticker, and filing-date filters.
 - Politician cards, persistent politician/ticker watchlists, and named saved searches.
 - Disclosure details with amount ranges, owner, trade/filing dates, disclosure delay, parser review flags, and original filing links.
@@ -32,7 +33,7 @@ No signing credentials are included. Notification permissions require launching 
 - Offline caches, source health, ingestion timestamps, last full sync, and failure handling. History refreshes when the manifest changes, daily, or on demand.
 - Polling every 15 minutes while the app runs; in-app alerts for new watched filings and optional macOS notifications. The first successful sync establishes a baseline and suppresses historical notification floods. Monitoring stops when the app quits.
 - A menu bar for opening the app, seeing recent alerts, and refreshing. Cmd-R refreshes disclosures.
-- A leaderboard and interactive Swift Charts graph, with 30/90/180 calendar-day windows, minimum sample counts, optional excess-return ranking, purchase-level filing links, and excluded-record reasons.
+- An accessible leaderboard and interactive Swift Charts graph with solid modeled-return and dashed benchmark lines, with 30/90/180 calendar-day windows, minimum sample counts, optional excess-return ranking, purchase-level filing links, and excluded-record reasons.
 
 ## Leaderboard methodology
 
@@ -79,3 +80,7 @@ bash scripts/build-app.sh
 The macOS CI workflow runs unit tests, builds a universal development installer for Intel and Apple silicon, smoke-tests the packaged app, and verifies Sparkle signatures while rejecting modified archives and feeds. The separate, manually started release action requires Developer ID signing and Apple notarization before publishing. Its default mode produces a development build without signing; only the explicit production checkbox enables signing. Signing/notarization require the credential setup described above. Tests cover disclosure decoding, no-look-ahead entry, identical benchmark dates, equal weighting, curve endpoints, ordering, missing prices, incomplete periods, price gaps, CSV validation, archive planning, corrupted gzip, and watchlist alert matching. Manual interaction and notification delivery should still be checked on a Mac.
 
 The references were [CongressStock](https://www.congressstock.com/trades), [Pelosi Tracker](https://pelositracker.app), and [LuxAlgo Market Trackers](https://github.com/LuxAlgo/market-trackers). The two websites returned HTTP 403 during research, so their layouts were not inspected or copied. Bundled disclosures are CC0 per LuxAlgo's [data license](https://github.com/LuxAlgo/market-trackers/blob/main/data-licenses/DATA-LICENSE). LuxAlgo ingestion code has not been copied into this app.
+
+## SwiftUI review
+
+The app uses Swift Observation, structured background analysis, atomic caches, and feature-oriented view components. See [Docs/SwiftUI-Review.md](Docs/SwiftUI-Review.md) for the applied swiftui-pro findings and reproducible skill installation.

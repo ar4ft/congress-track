@@ -19,10 +19,13 @@ concurrency:
   group: congresstrack-production-release
   cancel-in-progress: false
 
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+
 jobs:
   development:
     if: ${{ !inputs.signed_release }}
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,7 +45,7 @@ jobs:
             dist/CongressTrack.dmg
   release:
     if: ${{ inputs.signed_release }}
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 60
     permissions:
       contents: write

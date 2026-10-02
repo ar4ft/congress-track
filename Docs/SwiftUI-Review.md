@@ -85,7 +85,7 @@ AnalysisRequest(tradesRevision: store.revision, pricesRevision: prices.revision,
 try await PerformanceEngine.evaluateAsync(/* ... */) // @concurrent, cancellation-aware
 ```
 
-The model retains ranked results; changing the sample threshold or ordering updates those results. Entry averages and chart curves are computed once. Price freshness summaries use a cached latest-bar value. Lazy ranking/exclusion containers avoid eagerly laying out the entire archive.
+The model retains ranked results and numbered rows (direct ForEach over enumerated() requires macOS 26, so the compatible array is built once per ranking update); changing the sample threshold or ordering updates those results. Entry averages and chart curves are computed once. Price freshness summaries use a cached latest-bar value. Lazy ranking/exclusion containers avoid eagerly laying out the entire archive.
 
 **Original chart lines 140–166: do not rely on color to identify series.** The benchmark uses a dashed line, explicit solid/dashed legend text, optional differing symbols under Differentiate Without Color, and an accessible summary. There are no added animations, so Reduce Motion needs no special animation branch. Native Charts retains its accessible data representation. Locale-aware FormatStyle replaces C-style percent formatting. Returns, benchmark alignment, and equal weighting are unchanged.
 

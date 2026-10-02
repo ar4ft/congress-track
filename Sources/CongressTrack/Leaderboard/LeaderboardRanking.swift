@@ -11,10 +11,11 @@ struct LeaderboardRanking: View {
                 Text("Excess").frame(width: 95, alignment: .trailing)
                 Text("Scored / skipped").frame(width: 115, alignment: .trailing)
             }.font(.caption.bold()).foregroundStyle(.secondary).padding(12)
-            ForEach(model.leaders.enumerated(), id: \.element.id) { index, leader in
+            ForEach(model.rankedRows) { row in
+                let leader = row.leader
                 Button { model.selectedID = leader.id } label: {
                     HStack {
-                        Text("\(index + 1)").font(.headline).monospacedDigit().frame(width: 28)
+                        Text("\(row.rank)").font(.headline).monospacedDigit().frame(width: 28)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(leader.member.name).fontWeight(.medium)
                             Text([leader.member.party, leader.member.state].compactMap { $0 }.joined(separator: " · "))
@@ -27,7 +28,7 @@ struct LeaderboardRanking: View {
                     }.monospacedDigit().padding(12).contentShape(Rectangle())
                         .background(model.selected?.id == leader.id ? .teal.opacity(0.1) : .clear)
                 }.buttonStyle(.plain)
-                    .accessibilityLabel("Rank \(index + 1), \(leader.member.name). Model \(ReturnFormat.percent(leader.returnPct)), SPY \(ReturnFormat.percent(leader.benchmarkPct)), excess \(ReturnFormat.points(leader.excessPct)).")
+                    .accessibilityLabel("Rank \(row.rank), \(leader.member.name). Model \(ReturnFormat.percent(leader.returnPct)), SPY \(ReturnFormat.percent(leader.benchmarkPct)), excess \(ReturnFormat.points(leader.excessPct)).")
                     .accessibilityAddTraits(model.selected?.id == leader.id ? .isSelected : [])
                 Divider()
             }

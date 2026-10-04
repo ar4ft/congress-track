@@ -7,22 +7,25 @@ struct PoliticianCard: View {
     let open: () -> Void
     private var following: Bool { store.followed.contains(member.key) }
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Image(systemName: "person.crop.circle.fill").font(.largeTitle).foregroundStyle(AppTheme.accent)
-                    .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(member.name).font(.headline).foregroundStyle(AppTheme.ink)
+                    Text([member.party, member.state].compactMap { $0 }.joined(separator: " · "))
+                        .font(.caption).foregroundStyle(AppTheme.secondaryInk)
+                }
                 Spacer()
                 Button(following ? "Unfollow \(member.name)" : "Follow \(member.name)", systemImage: following ? "star.fill" : "star") {
                     store.toggleFollow(member)
                 }.labelStyle(.iconOnly).buttonStyle(.borderless)
                     .help(following ? "Unfollow politician" : "Follow politician")
             }
-            Text(member.name).font(.headline)
-            Text([member.party, member.state].compactMap { $0 }.joined(separator: " · ")).font(.callout).foregroundStyle(.secondary)
-            Text("\(count.formatted()) loaded disclosures").font(.callout).foregroundStyle(.secondary)
-            Button("View disclosures", systemImage: "arrow.right", action: open)
-        }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppTheme.surface, in: .rect(cornerRadius: AppTheme.cornerRadius))
-            .overlay { RoundedRectangle(cornerRadius: AppTheme.cornerRadius).strokeBorder(.quaternary) }
+            HStack {
+                Text("\(count.formatted()) disclosures").font(.callout).monospacedDigit().foregroundStyle(AppTheme.secondaryInk)
+                Spacer()
+                Button("View filings", systemImage: "arrow.right", action: open).font(.callout)
+            }
+        }.padding(.vertical, 16).frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .top) { Rectangle().fill(AppTheme.rule).frame(height: 1) }
     }
 }

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "before",
+    "fails": [
+      "Contrast below WCAG on solid ground: 4.03:1 13px \"Disclosures\"; 4.41:1 11px \"Data health\"",
+      "Text overlapping text: \"Democrat · RI · Senate\" / \"Source is stale · last ingesti\"; \"SDZNY- Sandoz Group AG ADR\" / \"Data health\""
+    ],
+    "warns": [
+      "Lines of text touching vertically (ink under 2pt apart): \"ViaSat, Inc. - Common Stock (V\" / \"Sell\"; \"ViaSat, Inc. - Common Stock (V\" / \"$1,001 - $15,000\"; \"2026-09-02\" / \"175 published records · partia\"",
+      "Tap targets under 44pt (add padding, or data-hit-expanded if the hit area is larger than the drawing): 13x13 \"\""
+    ],
+    "facts": {
+      "fonts": {
+        "system-ui": 73
+      },
+      "sizes": [
+        36,
+        26,
+        14,
+        13,
+        12,
+        11
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        192
+      ],
+      "cards": 4
+    }
+  }
+]

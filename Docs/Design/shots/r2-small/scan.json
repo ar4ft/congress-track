@@ -1,0 +1,171 @@
+[
+  {
+    "name": "disclosures",
+    "fails": [],
+    "warns": [
+      "Only 3 text sizes across 73 text elements. Hierarchy is flat.",
+      "Tap targets under 44pt (add padding, or data-hit-expanded if the hit area is larger than the drawing): 13x13 \"\""
+    ],
+    "facts": {
+      "fonts": {
+        "system-ui": 73
+      },
+      "sizes": [
+        34,
+        13,
+        12
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        24
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "filing-inspector",
+    "fails": [],
+    "warns": [
+      "Tap targets under 44pt (add padding, or data-hit-expanded if the hit area is larger than the drawing): 13x13 \"\""
+    ],
+    "facts": {
+      "fonts": {
+        "system-ui": 94
+      },
+      "sizes": [
+        40,
+        22,
+        16,
+        13,
+        12
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        24
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "benchmark-comparison",
+    "fails": [],
+    "warns": [
+      "Tap targets under 44pt (add padding, or data-hit-expanded if the hit area is larger than the drawing): 13x13 \"\""
+    ],
+    "facts": {
+      "fonts": {
+        "system-ui": 52
+      },
+      "sizes": [
+        40,
+        34,
+        22,
+        13,
+        12
+      ],
+      "weights": [
+        "400",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        24
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "filing-lens-storyboard",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "system-ui": 46
+      },
+      "sizes": [
+        34,
+        22,
+        13,
+        12
+      ],
+      "weights": [
+        "400",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        24
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "disclosures-dark",
+    "fails": [],
+    "warns": [
+      "Only 3 text sizes across 73 text elements. Hierarchy is flat.",
+      "Tap targets under 44pt (add padding, or data-hit-expanded if the hit area is larger than the drawing): 13x13 \"\""
+    ],
+    "facts": {
+      "fonts": {
+        "system-ui": 73
+      },
+      "sizes": [
+        34,
+        13,
+        12
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        24
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "watchlist-empty",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "system-ui": 21
+      },
+      "sizes": [
+        34,
+        22,
+        13,
+        12
+      ],
+      "weights": [
+        "400",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        24
+      ],
+      "cards": 0
+    }
+  }
+]

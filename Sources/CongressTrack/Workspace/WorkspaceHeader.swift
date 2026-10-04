@@ -6,25 +6,18 @@ struct WorkspaceHeader: View {
     let workspace: WorkspaceModel
     var showMetrics = true
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title).font(.largeTitle.bold())
-                    Text(subtitle).font(.callout).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Label("House + Senate", systemImage: "building.columns")
-                    .font(.caption.weight(.semibold)).padding(9)
-                    .background(AppTheme.accent.opacity(0.1), in: .capsule)
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            Text("House + Senate").font(.caption).foregroundStyle(AppTheme.secondaryInk)
+            Text(title).font(AppTheme.screenTitle).tracking(-0.8).foregroundStyle(AppTheme.ink)
             if showMetrics {
-                HStack(spacing: 12) {
-                    MetricCard(title: "Disclosures", value: workspace.rows.count.formatted(), symbol: "doc.text")
-                    MetricCard(title: "Politicians", value: workspace.politicianCount.formatted(), symbol: "person.2")
-                    MetricCard(title: "Purchases", value: workspace.purchases.formatted(), symbol: "arrow.down.left")
-                    MetricCard(title: "Sales", value: workspace.sales.formatted(), symbol: "arrow.up.right")
-                }
+                Text("\(workspace.rows.count.formatted()) disclosures · \(workspace.politicianCount.formatted()) politicians · \(workspace.purchases.formatted()) purchases · \(workspace.sales.formatted()) sales")
+                    .font(.callout).monospacedDigit().foregroundStyle(AppTheme.secondaryInk)
+                    .accessibilityLabel("\(workspace.rows.count) matching disclosures, \(workspace.politicianCount) politicians, \(workspace.purchases) purchases and \(workspace.sales) sales. Exchanges are included in the disclosure total.")
+            } else {
+                Text(subtitle).font(.callout).foregroundStyle(AppTheme.secondaryInk)
             }
-        }.padding(AppTheme.spacing)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, AppTheme.spacing).padding(.top, 22).padding(.bottom, 20)
     }
 }

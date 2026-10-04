@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "app-designer": {
+      "source": "fortvna/app-designer",
+      "sourceType": "github",
+      "skillPath": "app-designer/SKILL.md",
+      "computedHash": "b3e3939a7e2952cc537d6cebc18c62ffe81501a43d4f3d470506bb5caff062f2"
+    },
     "swiftui-pro": {
       "source": "twostraws/swiftui-agent-skill",
       "sourceType": "github",

@@ -1,0 +1,62 @@
+[
+  {
+    "name": "before",
+    "fails": [
+      "Contrast below WCAG on solid ground: 4.03:1 13px \"Disclosures\"; 4.41:1 12px \"Data health\""
+    ],
+    "warns": [
+      "Tap targets under 44pt (add padding, or data-hit-expanded if the hit area is larger than the drawing): 13x13 \"\""
+    ],
+    "facts": {
+      "fonts": {
+        "system-ui": 80
+      },
+      "sizes": [
+        34,
+        22,
+        13,
+        12
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        192
+      ],
+      "cards": 4
+    }
+  },
+  {
+    "name": "after",
+    "fails": [],
+    "warns": [
+      "Only 3 text sizes across 73 text elements. Hierarchy is flat.",
+      "Tap targets under 44pt (add padding, or data-hit-expanded if the hit area is larger than the drawing): 13x13 \"\""
+    ],
+    "facts": {
+      "fonts": {
+        "system-ui": 73
+      },
+      "sizes": [
+        34,
+        13,
+        12
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        24
+      ],
+      "cards": 0
+    }
+  }
+]

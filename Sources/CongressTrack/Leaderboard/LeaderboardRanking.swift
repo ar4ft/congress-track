@@ -26,12 +26,12 @@ struct LeaderboardRanking: View {
                         Text(ReturnFormat.points(leader.excessPct)).frame(width: 95, alignment: .trailing)
                         Text("\(leader.events.count) / \(leader.skipped.count)").frame(width: 115, alignment: .trailing)
                     }.monospacedDigit().padding(12).contentShape(Rectangle())
-                        .background(model.selected?.id == leader.id ? .teal.opacity(0.1) : .clear)
+                        .background(model.selected?.id == leader.id ? AppTheme.selection : .clear)
                 }.buttonStyle(.plain)
                     .accessibilityLabel("Rank \(row.rank), \(leader.member.name). Model \(ReturnFormat.percent(leader.returnPct)), SPY \(ReturnFormat.percent(leader.benchmarkPct)), excess \(ReturnFormat.points(leader.excessPct)).")
                     .accessibilityAddTraits(model.selected?.id == leader.id ? .isSelected : [])
                 Divider()
             }
-        }.background(AppTheme.surface, in: .rect(cornerRadius: AppTheme.cornerRadius))
+        }
     }
 }

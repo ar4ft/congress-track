@@ -7,21 +7,25 @@ struct WorkspaceSidebar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
-                Image(systemName: "building.columns.fill").font(.title2).foregroundStyle(AppTheme.accent)
+                Image(systemName: "building.columns").font(.title2).foregroundStyle(AppTheme.sidebarAccent)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("CongressTrack").font(.headline)
-                    Text("The public record").font(.caption).foregroundStyle(.secondary)
+                    Text("CongressTrack").font(.headline).foregroundStyle(AppTheme.sidebarInk)
+                    Text("Public disclosures").font(.caption).foregroundStyle(AppTheme.sidebarSecondary)
                 }
-            }.padding(20)
+            }.padding(20).padding(.top, 8)
             List(selection: $workspace.route) {
                 Section("Workspace") {
                     ForEach(WorkspaceRoute.allCases) { route in
                         Label(route.title, systemImage: route.icon).tag(route)
+                            .foregroundStyle(workspace.route == route ? AppTheme.sidebarAccent : AppTheme.sidebarInk)
+                            .listRowBackground(workspace.route == route ? AppTheme.sidebarSelection : Color.clear)
                     }
                 }
                 Section("Following") {
                     if store.followed.isEmpty && store.watchedTickers.isEmpty {
-                        Text("Follow a politician or stock from a disclosure.").font(.callout).foregroundStyle(.secondary)
+                        Text("Follow a politician or stock from a disclosure.")
+                            .font(.callout).foregroundStyle(AppTheme.sidebarSecondary)
                     }
                     ForEach(store.members.filter { store.followed.contains($0.key) }, id: \.key) { member in
                         Label(member.name, systemImage: "person.crop.circle").tag(WorkspaceRoute.member(member.key))
@@ -38,12 +42,18 @@ struct WorkspaceSidebar: View {
                             .contextMenu { Button("Delete search") { store.deleteSearch(saved.id) } }
                     }
                 }
-            }.listStyle(.sidebar)
-            VStack(alignment: .leading, spacing: 6) {
-                Label("Public disclosures", systemImage: "checkmark.seal").font(.callout.weight(.medium))
-                Text("House & Senate · LuxAlgo\nAmounts are disclosed ranges.").font(.caption).foregroundStyle(.secondary)
-            }.padding(20)
+            }
+            .listStyle(.sidebar).scrollContentBackground(.hidden)
+            .foregroundStyle(AppTheme.sidebarInk)
+            .environment(\.colorScheme, .dark)
+            .tint(AppTheme.sidebarAccent)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("House & Senate").font(.callout).foregroundStyle(AppTheme.sidebarInk)
+                Text("Data by LuxAlgo · disclosed ranges").font(.caption).foregroundStyle(AppTheme.sidebarSecondary)
+            }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .top) { Rectangle().fill(AppTheme.sidebarSecondary.opacity(0.3)).frame(height: 1).padding(.horizontal, 20) }
         }
-        .navigationSplitViewColumnWidth(min: 210, ideal: 240, max: 290)
+        .background(AppTheme.sidebar)
+        .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 290)
     }
 }

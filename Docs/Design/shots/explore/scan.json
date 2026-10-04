@@ -1,0 +1,94 @@
+[
+  {
+    "name": "reading-room",
+    "fails": [],
+    "warns": [
+      "Tap targets under 44pt (add padding, or data-hit-expanded if the hit area is larger than the drawing): 13x13 \"\""
+    ],
+    "facts": {
+      "fonts": {
+        "system-ui": 72,
+        "Georgia": 1
+      },
+      "sizes": [
+        40,
+        14,
+        13,
+        12,
+        11
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        216
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "research-console",
+    "fails": [],
+    "warns": [
+      "Tap targets under 44pt (add padding, or data-hit-expanded if the hit area is larger than the drawing): 13x13 \"\""
+    ],
+    "facts": {
+      "fonts": {
+        "system-ui": 72,
+        "DejaVu Sans Mono": 1
+      },
+      "sizes": [
+        36,
+        14,
+        13,
+        12,
+        11
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        24
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "public-bulletin",
+    "fails": [],
+    "warns": [
+      "Tap targets under 44pt (add padding, or data-hit-expanded if the hit area is larger than the drawing): 13x13 \"\""
+    ],
+    "facts": {
+      "fonts": {
+        "system-ui": 72,
+        "Bricolage Grotesque": 1
+      },
+      "sizes": [
+        44,
+        14,
+        13,
+        12,
+        11
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        336
+      ],
+      "cards": 0
+    }
+  }
+]

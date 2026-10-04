@@ -5,6 +5,7 @@ import Observation
 @Observable
 final class LeaderboardModel {
     var window = 30
+    private(set) var analyzedWindow = 30
     var minimumSamples = 1 { didSet { updateRanking() } }
     var rankByExcess = false { didSet { updateRanking() } }
     var selectedID: String?
@@ -15,11 +16,12 @@ final class LeaderboardModel {
     var selected: LeaderboardEntry? { leaders.first { $0.id == selectedID } ?? leaders.first }
 
     func calculate(trades: [Trade], prices: PriceArchive) async {
+        let requestedWindow = window
         calculating = true
         do {
-            let updated = try await PerformanceEngine.evaluateAsync(trades: trades, prices: prices, window: window)
+            let updated = try await PerformanceEngine.evaluateAsync(trades: trades, prices: prices, window: requestedWindow)
             try Task.checkCancellation()
-            report = updated; updateRanking(); calculating = false
+            report = updated; analyzedWindow = requestedWindow; updateRanking(); calculating = false
         } catch { /* The task for the next request replaces this calculation. */ }
     }
     private func updateRanking() {

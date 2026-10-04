@@ -20,6 +20,29 @@ final class WorkspaceTests: XCTestCase {
     func testSearchFindsDiacritics() {
         XCTAssertTrue(trade("one").matches("jose"))
     }
+    func testSourceTimestampKeepsUTCAndHandlesFractionalSeconds() {
+        let plain = SourceTimestamp.display("2026-09-04T20:31:37Z")
+        XCTAssertEqual(SourceTimestamp.display("2026-09-04T20:31:37.868Z"), plain)
+        XCTAssertEqual(SourceTimestamp.display("2026-09-04T22:31:37+02:00"), plain)
+        XCTAssertTrue(plain.hasSuffix(" UTC"))
+        XCTAssertEqual(SourceTimestamp.display("Unknown"), "Unknown")
+    }
+    @MainActor
+    func testReportRetainsItsHoldingPeriodUntilNewCalculationCompletes() async throws {
+        let prices = PriceArchive(series: [
+            "TEST": [.init(date: "2026-01-06", close: 100), .init(date: "2026-01-07", close: 105), .init(date: "2026-01-08", close: 110)],
+            "SPY": [.init(date: "2026-01-06", close: 200), .init(date: "2026-01-07", close: 202), .init(date: "2026-01-08", close: 204)]
+        ])
+        let model = LeaderboardModel(); model.window = 2
+        await model.calculate(trades: [trade("one")], prices: prices)
+        XCTAssertEqual(try XCTUnwrap(model.selected).returnPct, 10, accuracy: 0.000001)
+        model.window = 90
+        XCTAssertEqual(model.analyzedWindow, 2, "An existing graph must retain the period that produced its returns")
+        XCTAssertEqual(try XCTUnwrap(model.selected).returnPct, 10, accuracy: 0.000001)
+        await model.calculate(trades: [trade("one")], prices: prices)
+        XCTAssertEqual(model.analyzedWindow, 90)
+        XCTAssertEqual(model.report.scoredCount, 0)
+    }
     func testQueryCombinesWatchlistAndFilters() async throws {
         var filters = TradeFilters(); filters.ticker = "TEST"
         let query = TradeQuery(revision: 1, filters: filters, watchlistOnly: true, members: ["Followed"], tickers: [])

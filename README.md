@@ -25,9 +25,9 @@ No signing credentials are included. Notification permissions require launching 
 
 ## Features
 
-- Adaptive sidebar, readable summary cards, and a resizable disclosure inspector; light/dark system appearance.
+- Graphite research sidebar, amber focus, compact disclosure summaries, and a resizable source-verification inspector; designed light/dark appearance.
 - Searchable and sortable native disclosure table; chamber, party, activity, ticker, and filing-date filters.
-- Politician cards, persistent politician/ticker watchlists, and named saved searches.
+- Politician summaries, persistent politician/ticker watchlists, and named saved searches.
 - Disclosure details with amount ranges, owner, trade/filing dates, disclosure delay, parser review flags, and original filing links.
 - Full year-shard history synchronization, validated against the manifest's record count; authoritative snapshots reconcile corrections and removals. The latest delta updates between snapshots.
 - Offline caches, source health, ingestion timestamps, last full sync, and failure handling. History refreshes when the manifest changes, daily, or on demand.
@@ -44,7 +44,7 @@ This ranks **modeled returns**, not politicians' actual realized profits. Public
 3. Exit at the first shared close on or after the entry date plus the selected calendar-day window, within 7 days. Exclude incomplete windows and coverage gaps over 7 days.
 4. Compute stock and SPY returns from adjusted closes on **identical dates**. Every eligible purchase gets equal weight. Disclosed ranges never become estimated position sizes. No costs or taxes are modeled.
 5. Rank each politician's arithmetic mean event return. Excess return is that mean minus the matched SPY mean, in **percentage points**. Minimum sample counts can reduce small-sample rankings.
-6. Rebase each event's stock and benchmark price path to 100, align by **percentage of holding period**, and average the paths. The graph is a time-aligned event comparison, not a calendar-time portfolio equity curve. Its endpoint equals the leaderboard return.
+6. Rebase each event's stock and benchmark price path to 100, align by **percentage of holding period**, and average the paths. The plot subtracts the 100 baseline to display percentage returns starting at 0%. The graph is a time-aligned event comparison, not a calendar-time portfolio equity curve. Its endpoint equals the leaderboard return.
 
 SPY is an S&P 500 ETF proxy, not the index itself. Adjusted-close changes account for the provider's split/dividend adjustments and are not identical to the official S&P 500 total-return index. Small samples, excluded assets, missing prices, and incomplete disclosure coverage can materially affect rankings.
 
@@ -84,3 +84,7 @@ The references were [CongressStock](https://www.congressstock.com/trades), [Pelo
 ## SwiftUI review
 
 The app uses Swift Observation, structured background analysis, atomic caches, and feature-oriented view components. See [Docs/SwiftUI-Review.md](Docs/SwiftUI-Review.md) for the applied swiftui-pro findings and reproducible skill installation.
+
+## Design review
+
+Applied [app-designer](https://github.com/fortvna/app-designer) to the user-selected **precise financial research desk** direction. Three concepts, a checked feature inventory, before/after studies, full-resolution Mac window previews, and independent critique history are in [Docs/Design](Docs/Design/README.md). The filing lens connects transaction dates, disclosure delay, provenance and the original filing; the graph emphasizes excess return against matched SPY. Layout-study prices are expressly illustrative and never enter the app’s market data.

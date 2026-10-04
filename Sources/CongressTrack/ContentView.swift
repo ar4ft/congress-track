@@ -20,7 +20,7 @@ struct ContentView: View {
         } detail: {
             VStack(alignment: .leading, spacing: 0) {
                 WorkspaceHeader(title: workspace.route?.title ?? "Disclosures",
-                                subtitle: workspace.route == .leaderboard ? "Compare disclosure-following returns with the S&P 500." : "Follow the filings. Explore the full disclosure.",
+                                subtitle: workspace.route == .leaderboard ? "Compare disclosure-following returns with the S&P 500." : "Explore the published records.",
                                 workspace: workspace, showMetrics: showsDisclosures)
                 if let error = store.error {
                     HStack {
@@ -45,7 +45,7 @@ struct ContentView: View {
             .background(AppTheme.canvas)
             .inspector(isPresented: $workspace.showInspector) {
                 if let trade = workspace.selected {
-                    TradeDetail(trade: trade)
+                    TradeDetail(trade: trade) { workspace.showInspector = false }
                         .inspectorColumnWidth(min: 280, ideal: 320, max: 420)
                 }
             }
@@ -55,8 +55,12 @@ struct ContentView: View {
                         .labelStyle(.iconOnly).disabled(store.refreshing).help("Refresh disclosures (⌘R)")
                 }
                 ToolbarItem {
+                    SettingsLink { Label("Settings", systemImage: "gearshape").labelStyle(.iconOnly) }.help("CongressTrack settings")
+                }
+                ToolbarItem {
                     Button("Disclosure details", systemImage: "sidebar.trailing") { workspace.showInspector.toggle() }
-                        .labelStyle(.iconOnly).disabled(workspace.selected == nil).help("Show or hide disclosure details")
+                        .labelStyle(.iconOnly).disabled(workspace.selected == nil)
+                        .keyboardShortcut("i", modifiers: [.command, .option]).help("Show or hide disclosure details")
                 }
             }
         }

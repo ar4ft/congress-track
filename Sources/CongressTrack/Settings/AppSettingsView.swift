@@ -5,6 +5,7 @@ struct AppSettingsView: View {
     @Environment(UpdateController.self) private var updates
     @State private var ticker = ""
     @State private var notifications = false
+    @State private var notificationRequest = UUID()
 
     var body: some View {
         @Bindable var updates = updates
@@ -44,7 +45,15 @@ struct AppSettingsView: View {
             }
         }.formStyle(.grouped).padding().frame(width: 540, height: 620)
             .onAppear { notifications = store.notificationsEnabled }
-            .onChange(of: notifications) { _, value in Task { await store.setNotifications(value); notifications = store.notificationsEnabled } }
+            .onChange(of: notifications) { _, value in
+                let request = UUID()
+                notificationRequest = request
+                Task {
+                    await store.setNotifications(value)
+                    guard request == notificationRequest else { return }
+                    notifications = store.notificationsEnabled
+                }
+            }
             .onChange(of: store.notificationsEnabled) { _, value in notifications = value }
     }
 }

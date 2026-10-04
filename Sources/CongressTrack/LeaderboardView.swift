@@ -82,7 +82,7 @@ struct LeaderboardView: View {
             }
         }
         .task(id: analysisKey) { await model.calculate(trades: store.trades, prices: prices.archive) }
-        .task {
+        .task(id: store.revision) {
             await prices.loadIfNeeded()
             if prices.archive.series.isEmpty && !store.trades.isEmpty { await prices.refresh(for: store.trades) }
         }

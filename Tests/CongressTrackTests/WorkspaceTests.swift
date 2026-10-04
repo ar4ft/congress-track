@@ -45,6 +45,19 @@ final class WorkspaceTests: XCTestCase {
         XCTAssertNil(model.filters.memberKey)
         XCTAssertEqual(model.filters.ticker, "TEST")
     }
+    @MainActor
+    func testClearFiltersResetsMemberRouteButKeepsWatchlistScope() {
+        let model = WorkspaceModel()
+        model.route = .member("Followed"); model.applyRoute(searches: [])
+        model.clearFilters()
+        XCTAssertEqual(model.route, .all)
+        XCTAssertNil(model.filters.memberKey)
+        model.route = .watchlist
+        model.filters.search = "TEST"
+        model.clearFilters()
+        XCTAssertEqual(model.route, .watchlist)
+        XCTAssertFalse(model.filters.isActive)
+    }
     func testCanceledAnalysisDoesNotReturnAPartialReport() async {
         let task = Task {
             withUnsafeCurrentTask { $0?.cancel() }

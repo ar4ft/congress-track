@@ -25,7 +25,7 @@ struct TradeFilterBar: View {
                 }
                 if let ticker = workspace.filters.ticker { Text(ticker).font(.callout.bold()) }
                 Spacer()
-                if workspace.filters.isActive { Button("Clear filters") { workspace.filters = TradeFilters() } }
+                if workspace.filters.isActive { Button("Clear filters") { workspace.clearFilters() } }
                 Button("Save search", systemImage: "bookmark", action: saveSearch)
             }
         }.padding(.horizontal, AppTheme.spacing).padding(.bottom, 16)

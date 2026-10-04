@@ -34,7 +34,7 @@ workspace.route = .member(member.key)
 // onChange calls applyRoute(searches:), restoring related filters together
 ```
 
-Followed members now appear in Following rather than Saved Searches. Detail selection opens a native, resizable, closable inspector. Semantic typography, adaptive system surfaces, shared spacing, and a narrower minimum window improve readability in both appearance modes.
+Followed members now appear in Following rather than Saved Searches. Clearing member, ticker, or saved-search filters resets their route; clearing ordinary watchlist filters preserves watchlist scope. Detail selection opens a native, resizable, closable inspector. Semantic typography, adaptive system surfaces, shared spacing, and a narrower minimum window improve readability in both appearance modes.
 
 **Original lines 286–290; SettingsView.swift line 75: give icon-only controls readable labels.**
 
@@ -70,7 +70,7 @@ try Task.checkCancellation()
 // Atomic persistence precedes publishing the completed refresh.
 ```
 
-`LocalStorage` serializes disk reads, CSV parsing, and atomic writes off the UI actor. Canceled refreshes preserve the previous price archive and revision. Trade records and their manifest now share one atomic snapshot; older separate caches remain readable. Concurrent initial loads share one task. Authorization requests use identities to prevent an old notification prompt overwriting a newer preference; foreground notifications have a presentation delegate.
+`LocalStorage` serializes disk reads, CSV parsing, and atomic writes off the UI actor. Canceled refreshes preserve the previous price archive and revision. Trade records and their manifest now share one atomic snapshot; older separate caches remain readable. Concurrent initial loads share one task, including CSV import. Initial price loading reacts to disclosure revisions so opening the leaderboard before the first cache load does not leave it unpriced. Authorization requests and settings tasks use identities to prevent an old notification prompt overwriting a newer preference; foreground notifications have a presentation delegate.
 
 ## LeaderboardView.swift / Performance.swift → Leaderboard/
 

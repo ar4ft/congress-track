@@ -42,5 +42,13 @@ final class WorkspaceModel {
         } catch { /* A newer structured task owns the next result. */ }
     }
 
+    func clearFilters() {
+        filters = TradeFilters()
+        switch route {
+        case .member, .ticker, .savedSearch: route = .all
+        default: break
+        }
+    }
+
     func sort() { rows.sort(using: sortOrder) }
 }

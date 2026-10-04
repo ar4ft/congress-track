@@ -62,12 +62,13 @@ final class PriceStore {
             try await LocalStorage.shared.write(updated, to: cache)
             publish(updated)
             if !failures.isEmpty { error = "\(failures.count) ticker downloads failed. Cached prices are retained; coverage may be incomplete." }
-    
+
         } catch is CancellationError { return
         } catch { self.error = "Could not save prices: \(error.localizedDescription)" }
     }
 
     func importCSV(_ url: URL) async {
+        await loadIfNeeded()
         guard !loading else { return }
         loading = true
         defer { loading = false }

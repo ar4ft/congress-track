@@ -1,6 +1,6 @@
 # Signed, notarized releases and automatic updates
 
-The app and release workflow are implemented. **A production release cannot be issued until you configure the Apple and Sparkle credentials below.** Development jobs never invoke certificate signing or notarization, and have automatic updates disabled. Signing is permitted only in an explicitly selected, manually started release action.
+The app and release workflow are implemented. **A production release cannot be issued until you configure the Apple and Sparkle credentials below.** Development jobs never invoke certificate signing or notarization, and have automatic updates disabled. Successful main-branch pushes and manually requested unsigned builds publish downloadable GitHub prereleases, without changing the latest stable release or signed update feed. Signing is permitted only in an explicitly selected, manually started release action.
 
 The pipeline uses a Developer ID Application certificate, an App Store Connect **team** API key authorized for notarization, and a Sparkle Ed25519 signing key. It builds a universal app for Intel and Apple silicon; signs all nested Sparkle code with your identity; notarizes and staples the app and DMG; signs and verifies the update archive and feed; and uploads everything to a draft GitHub Release before publishing it. It rejects missing credentials, mismatched keys, reused versions, build-number downgrades, and unaccepted notarization results.
 
@@ -81,7 +81,7 @@ git tag v0.3.0
 git push origin v0.3.0
 ```
 
-Creating or pushing the tag **does not sign or publish anything**. Open **Actions → Mac build or signed release → Run workflow**, enter `v0.3.0` in the tag field, and check **Sign, notarize, and publish a production release**. Only this manual selection enables signing/notarization and publishing.
+Creating or pushing the version tag **does not sign or publish anything**; only successful pushes to `main` automatically publish unsigned development prereleases. Open **Actions → Mac build or signed release → Run workflow**, enter `v0.3.0` in the tag field, and check **Sign, notarize, and publish a production release**. Only this manual selection enables signing/notarization and publishing.
 
 For a development build, leave that checkbox off. The default is off. Leave the tag field blank to build the selected branch, or enter another existing branch/tag. This mode builds downloadable development artifacts without release signing, notarization, or publication; no Apple credentials are needed. Ordinary pushes and pull requests also run development CI without signing.
 

@@ -26,10 +26,15 @@ jobs:
   development:
     if: ${{ !inputs.signed_release }}
     runs-on: macos-15
+    outputs:
+      commit: ${{ steps.source.outputs.commit }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref }}
+      - name: Record development source commit
+        id: source
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - run: python3 -m unittest discover -s tests-release -v
       - run: swift test
       - name: Build development app without release signing
@@ -43,6 +48,26 @@ jobs:
           path: |
             dist/CongressTrack-macOS.zip
             dist/CongressTrack.dmg
+            dist/CongressTrack-symbols.zip
+  prerelease:
+    if: ${{ !inputs.signed_release }}
+    needs: development
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.development.outputs.commit }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: CongressTrack-development
+          path: dist
+      - name: Publish unsigned development prerelease
+        run: python3 scripts/publish-development.py
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONGRESSTRACK_RELEASE: '0'
   release:
     if: ${{ inputs.signed_release }}
     runs-on: macos-15

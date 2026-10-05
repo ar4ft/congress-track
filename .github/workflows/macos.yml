@@ -1,7 +1,10 @@
 name: Mac app checks
 on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
 env:
   DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+  CONGRESSTRACK_RELEASE: '0'
 
 jobs:
   build:
@@ -32,3 +35,19 @@ jobs:
             dist/CongressTrack-macOS.zip
             dist/CongressTrack.dmg
             dist/CongressTrack-symbols.zip
+  prerelease:
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: CongressTrack-macOS
+          path: dist
+      - name: Publish unsigned development prerelease
+        run: python3 scripts/publish-development.py
+        env:
+          GH_TOKEN: ${{ github.token }}

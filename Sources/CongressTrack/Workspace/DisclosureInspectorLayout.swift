@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Older AppKit versions can crash registering the automatic inspector toolbar
-/// separator inside a NavigationSplitView. A native resizable split pane avoids
-/// that registration while preserving the disclosure controls and selection.
+/// Avoid automatic inspector toolbar-separator registration and presentation
+/// callbacks inside NavigationSplitView. This native resizable split pane keeps
+/// disclosure presentation under the workspace's control on every supported OS.
 struct DisclosureInspectorLayout<Content: View>: View {
     @Bindable var workspace: WorkspaceModel
     let content: Content
@@ -13,17 +13,11 @@ struct DisclosureInspectorLayout<Content: View>: View {
     }
 
     var body: some View {
-        if #available(macOS 26, *) {
-            content.inspector(isPresented: $workspace.showInspector) {
-                inspectorContent.inspectorColumnWidth(min: 280, ideal: 320, max: 420)
-            }
-        } else {
-            HSplitView {
-                content.frame(maxWidth: .infinity, maxHeight: .infinity)
-                if workspace.showInspector {
-                    inspectorContent
-                        .frame(minWidth: 280, idealWidth: 320, maxWidth: 420, maxHeight: .infinity)
-                }
+        HSplitView {
+            content.frame(maxWidth: .infinity, maxHeight: .infinity)
+            if workspace.showInspector {
+                inspectorContent
+                    .frame(minWidth: 280, idealWidth: 320, maxWidth: 420, maxHeight: .infinity)
             }
         }
     }

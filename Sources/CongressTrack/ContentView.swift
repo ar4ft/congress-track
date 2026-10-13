@@ -6,6 +6,12 @@ struct ContentView: View {
     @State private var showSaveSearch = false
     @State private var searchName = ""
     @State private var showHealth = false
+    private let startsMonitoring: Bool
+
+    init(workspace: WorkspaceModel = WorkspaceModel(), startsMonitoring: Bool = true) {
+        _workspace = State(initialValue: workspace)
+        self.startsMonitoring = startsMonitoring
+    }
     private var query: TradeQuery {
         TradeQuery(revision: store.revision, filters: workspace.filters, watchlistOnly: workspace.route == .watchlist,
                    members: store.followed, tickers: store.watchedTickers)
@@ -18,36 +24,32 @@ struct ContentView: View {
         NavigationSplitView {
             WorkspaceSidebar(workspace: workspace)
         } detail: {
-            VStack(alignment: .leading, spacing: 0) {
-                WorkspaceHeader(title: workspace.route?.title ?? "Disclosures",
-                                subtitle: workspace.route == .leaderboard ? "Compare disclosure-following returns with the S&P 500." : "Explore the published records.",
-                                workspace: workspace, showMetrics: showsDisclosures)
-                if let error = store.error {
-                    HStack {
-                        Label(error, systemImage: "exclamationmark.triangle")
-                        Spacer()
-                        Button("Dismiss") { store.error = nil }
-                    }.font(.callout).padding(12).background(.orange.opacity(0.1))
-                }
-                switch workspace.route {
-                case .leaderboard: LeaderboardView()
-                case .members: PoliticiansView(workspace: workspace)
-                case .alerts: AlertsView()
-                default:
-                    TradeFilterBar(workspace: workspace) {
-                        searchName = workspace.filters.search.isEmpty ? "Saved filters" : workspace.filters.search
-                        showSaveSearch = true
+            DisclosureInspectorLayout(workspace: workspace) {
+                VStack(alignment: .leading, spacing: 0) {
+                    WorkspaceHeader(title: workspace.route?.title ?? "Disclosures",
+                                    subtitle: workspace.route == .leaderboard ? "Compare disclosure-following returns with the S&P 500." : "Explore the published records.",
+                                    workspace: workspace, showMetrics: showsDisclosures)
+                    if let error = store.error {
+                        HStack {
+                            Label(error, systemImage: "exclamationmark.triangle")
+                            Spacer()
+                            Button("Dismiss") { store.error = nil }
+                        }.font(.callout).padding(12).background(.orange.opacity(0.1))
                     }
-                    TradeTable(workspace: workspace)
+                    switch workspace.route {
+                    case .leaderboard: LeaderboardView()
+                    case .members: PoliticiansView(workspace: workspace)
+                    case .alerts: AlertsView()
+                    default:
+                        TradeFilterBar(workspace: workspace) {
+                            searchName = workspace.filters.search.isEmpty ? "Saved filters" : workspace.filters.search
+                            showSaveSearch = true
+                        }
+                        TradeTable(workspace: workspace)
+                    }
+                    WorkspaceFooter(showHealth: $showHealth)
                 }
-                WorkspaceFooter(showHealth: $showHealth)
-            }
-            .background(AppTheme.canvas)
-            .inspector(isPresented: $workspace.showInspector) {
-                if let trade = workspace.selected {
-                    TradeDetail(trade: trade) { workspace.showInspector = false }
-                        .inspectorColumnWidth(min: 280, ideal: 320, max: 420)
-                }
+                .background(AppTheme.canvas)
             }
             .toolbar {
                 ToolbarItem {
@@ -65,7 +67,7 @@ struct ContentView: View {
             }
         }
         .searchable(text: $workspace.filters.search, prompt: "Politician, ticker, or asset")
-        .task { store.startMonitoring() }
+        .task { if startsMonitoring { store.startMonitoring() } }
         .task(id: query) { await workspace.refresh(store.trades, query: query) }
         .onChange(of: workspace.route) { _, _ in workspace.applyRoute(searches: store.searches) }
         .onChange(of: workspace.sortOrder) { _, _ in workspace.sort() }

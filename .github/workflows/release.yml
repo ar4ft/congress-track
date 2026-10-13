@@ -25,7 +25,7 @@ env:
 jobs:
   development:
     if: ${{ !inputs.signed_release }}
-    runs-on: macos-15
+    runs-on: macos-15-intel
     outputs:
       commit: ${{ steps.source.outputs.commit }}
     steps:
@@ -42,6 +42,8 @@ jobs:
         env:
           CONGRESSTRACK_RELEASE: '0'
           CONGRESSTRACK_UNIVERSAL: '1'
+      - name: Smoke-test unsigned Intel app
+        run: swift scripts/smoke-app.swift dist/CongressTrack.app/Contents/MacOS/CongressTrack x86_64
       - uses: actions/upload-artifact@v4
         with:
           name: CongressTrack-development
@@ -70,7 +72,7 @@ jobs:
           CONGRESSTRACK_RELEASE: '0'
   release:
     if: ${{ inputs.signed_release }}
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 60
     permissions:
       contents: write
@@ -105,15 +107,7 @@ jobs:
       - name: Generate and verify signed update feed
         run: bash scripts/generate-appcast.sh
       - name: Smoke-test signed app
-        run: |
-          dist/CongressTrack.app/Contents/MacOS/CongressTrack > /tmp/congresstrack-release-smoke.log 2>&1 &
-          APP_PID=$!
-          sleep 8
-          if ! kill -0 "$APP_PID" 2>/dev/null; then
-            cat /tmp/congresstrack-release-smoke.log
-            exit 1
-          fi
-          kill "$APP_PID"
+        run: swift scripts/smoke-app.swift dist/CongressTrack.app/Contents/MacOS/CongressTrack x86_64
       - name: Remove temporary signing credentials
         if: always()
         run: python3 scripts/cleanup-release.py

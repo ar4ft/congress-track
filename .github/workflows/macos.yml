@@ -8,7 +8,7 @@ env:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - run: python3 -m unittest discover -s tests-release -v
@@ -19,15 +19,7 @@ jobs:
       - name: Verify signed updates and reject tampered packages
         run: bash scripts/test-updates.sh
       - name: Smoke-test packaged app
-        run: |
-          dist/CongressTrack.app/Contents/MacOS/CongressTrack > /tmp/congresstrack-smoke.log 2>&1 &
-          APP_PID=$!
-          sleep 8
-          if ! kill -0 "$APP_PID" 2>/dev/null; then
-            cat /tmp/congresstrack-smoke.log
-            exit 1
-          fi
-          kill "$APP_PID"
+        run: swift scripts/smoke-app.swift dist/CongressTrack.app/Contents/MacOS/CongressTrack x86_64
       - uses: actions/upload-artifact@v4
         with:
           name: CongressTrack-macOS
@@ -35,9 +27,27 @@ jobs:
             dist/CongressTrack-macOS.zip
             dist/CongressTrack.dmg
             dist/CongressTrack-symbols.zip
+  launch:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-26]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test --filter WindowLayoutTests
+      - uses: actions/download-artifact@v4
+        with:
+          name: CongressTrack-macOS
+          path: dist
+      - name: Unpack and launch Apple silicon package
+        run: |
+          ditto -x -k dist/CongressTrack-macOS.zip dist
+          swift scripts/smoke-app.swift dist/CongressTrack.app/Contents/MacOS/CongressTrack arm64
   prerelease:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
-    needs: build
+    needs: [build, launch]
     runs-on: ubuntu-latest
     permissions:
       contents: write
